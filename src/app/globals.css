@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background-color: #ffffff;
+  color: #191C22;
+}
+
+body {
+  font-feature-settings: 'cv11', 'ss01';
+}

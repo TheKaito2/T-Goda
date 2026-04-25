@@ -1,0 +1,4 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": ["assets/", "KU Competition – Web2026/"]
+}

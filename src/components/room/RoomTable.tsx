@@ -1,4 +1,10 @@
-import Icon from '@/components/ui/Icon';
+'use client';
+import { useRef, useState } from 'react';
+import { useGSAP } from '@gsap/react';
+import IconStatic from '@/components/ui/IconStatic';
+import BookingConfirmedModal from '@/components/booking/BookingConfirmedModal';
+import { gsap } from '@/lib/gsap';
+import { useToast } from '@/lib/toast';
 
 type Room = {
   name: string;
@@ -59,9 +65,87 @@ function InfoCircle() {
   );
 }
 
-export default function RoomTable() {
+type Props = { hotelName: string };
+
+export default function RoomTable({ hotelName }: Props) {
+  const ref = useRef<HTMLElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
+  const [bookRoom, setBookRoom] = useState<Room | null>(null);
+
+  useGSAP(
+    () => {
+      const root = ref.current;
+      if (!root) return;
+      const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-rt-row]'));
+
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) {
+        gsap.set(rows, { opacity: 1, y: 0 });
+        if (stickyRef.current) gsap.set(stickyRef.current, { opacity: 1, y: 0 });
+        return;
+      }
+
+      if (rows.length) gsap.set(rows, { opacity: 0, y: 24 });
+
+      let played = false;
+      const play = () => {
+        if (played) return;
+        played = true;
+        if (rows.length) {
+          gsap.to(rows, {
+            y: 0,
+            opacity: 1,
+            duration: 0.55,
+            stagger: 0.1,
+            ease: 'power2.out',
+          });
+        }
+      };
+
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            play();
+            io.disconnect();
+          }
+        },
+        { threshold: 0, rootMargin: '0px 0px -10% 0px' }
+      );
+      io.observe(root);
+      const fallback = window.setTimeout(play, 2000);
+
+      let stickyTween: gsap.core.Tween | null = null;
+      if (stickyRef.current) {
+        gsap.set(stickyRef.current, { y: 100, opacity: 0 });
+        stickyTween = gsap.to(stickyRef.current, {
+          y: 0,
+          opacity: 1,
+          duration: 0.4,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: root,
+            start: 'top 30%',
+            end: 'bottom bottom',
+            toggleActions: 'play reverse play reverse',
+          },
+        });
+      }
+
+      return () => {
+        io.disconnect();
+        window.clearTimeout(fallback);
+        if (stickyTween) {
+          stickyTween.scrollTrigger?.kill();
+          stickyTween.kill();
+        }
+      };
+    },
+    { scope: ref }
+  );
+
   return (
-    <section className="mt-12">
+    <section ref={ref} className="mt-12">
       <h2 className="text-[18px] font-normal leading-7 text-ink">Select Your Room</h2>
 
       <div className="mx-auto mt-4 flex min-h-[496px] w-full max-w-[1232px] flex-col overflow-hidden rounded-[16px] border border-[#C2C6D5]/40 bg-white">
@@ -76,7 +160,8 @@ export default function RoomTable() {
         {rooms.map((r, i) => (
           <div
             key={r.name}
-            className={`relative grid flex-1 grid-cols-1 items-center gap-12 border-t border-[#C2C6D5]/30 px-8 py-7 md:grid-cols-[340px_140px_1fr_247.75px_97.5px] ${
+            data-rt-row
+            className={`relative grid flex-1 grid-cols-1 items-center gap-12 border-t border-[#C2C6D5]/30 px-8 py-7 transition-colors hover:bg-surface-cool md:grid-cols-[340px_140px_1fr_247.75px_97.5px] ${
               i === 0 ? 'bg-[#F2F3FC]/60' : 'bg-white'
             }`}
           >
@@ -95,21 +180,22 @@ export default function RoomTable() {
                 )}
               </div>
               <p className="mt-2 text-[14px] leading-5 text-ink-soft">{r.specs}</p>
-              <a
-                href="#"
+              <button
+                type="button"
+                onClick={() => toast.info(r.name, r.specs)}
                 className="mt-2 inline-flex items-center gap-1.5 text-[14px] font-semibold text-brand-primary hover:underline"
               >
                 <InfoCircle />
                 Room details
-              </a>
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-1 text-ink-soft">
               {Array.from({ length: r.sleepsAdults }).map((_, k) => (
-                <Icon key={`a${k}`} name="room-detail/adult" size={18} className="text-ink-soft" />
+                <IconStatic key={`a${k}`} name="room-detail/adult" size={18} className="text-ink-soft" />
               ))}
               {Array.from({ length: r.sleepsChildren ?? 0 }).map((_, k) => (
-                <Icon key={`c${k}`} name="room-detail/children" size={18} className="text-ink-soft" />
+                <IconStatic key={`c${k}`} name="room-detail/children" size={18} className="text-ink-soft" />
               ))}
             </div>
 
@@ -138,7 +224,8 @@ export default function RoomTable() {
             <div className="flex justify-end">
               <button
                 type="button"
-                className={`inline-flex h-[37px] w-[97.5px] items-center justify-center rounded-[8px] text-[14px] font-bold text-white hover:opacity-95 ${
+                onClick={() => setBookRoom(r)}
+                className={`inline-flex h-[37px] w-[97.5px] items-center justify-center rounded-[8px] text-[14px] font-bold text-white transition hover:scale-105 hover:opacity-95 ${
                   i === 0 ? 'bg-brand-deal' : 'bg-brand-primary'
                 }`}
               >
@@ -148,6 +235,33 @@ export default function RoomTable() {
           </div>
         ))}
       </div>
+
+      <div
+        ref={stickyRef}
+        className="pointer-events-auto fixed bottom-4 left-1/2 z-30 hidden -translate-x-1/2 items-center gap-4 rounded-full border border-line/40 bg-white px-5 py-3 shadow-card md:flex"
+      >
+        <div className="text-[13px]">
+          <div className="font-semibold text-ink">From <span className="text-brand-deal">${rooms[1].price.toLocaleString()}</span> / night</div>
+          <div className="text-ink-soft">Free cancellation, no card needed</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setBookRoom(rooms[0])}
+          className="rounded-full bg-brand-deal px-5 py-2 text-[14px] font-bold text-white transition hover:scale-105 hover:opacity-95"
+        >
+          Book Now
+        </button>
+      </div>
+
+      <BookingConfirmedModal
+        open={!!bookRoom}
+        onClose={() => setBookRoom(null)}
+        hotel={hotelName}
+        room={bookRoom?.name ?? ''}
+        total={(bookRoom?.price ?? 0) * 3}
+        nights={3}
+        guests={(bookRoom?.sleepsAdults ?? 2) + (bookRoom?.sleepsChildren ?? 0)}
+      />
     </section>
   );
 }

@@ -1,4 +1,8 @@
+'use client';
+import { useState } from 'react';
 import StarRating from '@/components/ui/StarRating';
+import RevealStagger from '@/components/motion/RevealStagger';
+import ReviewsModal from './ReviewsModal';
 
 type Review = {
   initials: string;
@@ -40,20 +44,25 @@ const reviews: Review[] = [
 ];
 
 export default function GuestReviews() {
+  const [open, setOpen] = useState(false);
   return (
     <section className="mt-12">
       <div className="flex items-center justify-between">
         <h2 className="text-[24px] font-bold leading-8 text-ink">Guest Reviews</h2>
-        <a href="#" className="text-[16px] font-semibold text-brand-primary hover:underline">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-[16px] font-semibold text-brand-primary hover:underline"
+        >
           Read all 1,248 reviews
-        </a>
+        </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <RevealStagger className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3" stagger={0.12}>
         {reviews.map((r) => (
           <article
             key={r.name}
-            className="flex h-[220px] flex-col rounded-[16px] border border-[#C2C6D5]/30 bg-white p-6"
+            className="flex h-[220px] flex-col rounded-[16px] border border-[#C2C6D5]/30 bg-white p-6 transition-shadow duration-300 hover:shadow-card"
           >
             <div className="flex items-center justify-between gap-3">
               <StarRating value={5} size={14} />
@@ -75,7 +84,9 @@ export default function GuestReviews() {
             </div>
           </article>
         ))}
-      </div>
+      </RevealStagger>
+
+      <ReviewsModal open={open} onClose={() => setOpen(false)} />
     </section>
   );
 }

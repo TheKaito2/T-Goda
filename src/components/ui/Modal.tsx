@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useGSAP } from '@gsap/react';
 import { gsap, ScrollTrigger } from '@/lib/gsap';
+import { lockBodyScroll } from '@/lib/body-scroll';
 
 type Props = {
   open: boolean;
@@ -46,11 +47,8 @@ export default function Modal({ open, onClose, children, size = 'md', ariaLabel 
         { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: 'power3.out' }
       );
       ScrollTrigger.refresh();
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prevOverflow;
-      };
+      const release = lockBodyScroll();
+      return release;
     }
     const tl = gsap.timeline({ onComplete: () => setRender(false) });
     tl.to(panelRef.current, { y: 12, scale: 0.97, opacity: 0, duration: 0.22, ease: 'power2.in' }, 0);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGSAP } from '@gsap/react';
 import { gsap } from '@/lib/gsap';
+import { lockBodyScroll } from '@/lib/body-scroll';
 
 type Props = {
   open: boolean;
@@ -33,9 +34,8 @@ export default function Lightbox({ open, onClose, images, index = 0, alt = 'Phot
     if (open) {
       gsap.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.25 });
       gsap.fromTo(figureRef.current, { scale: 0.94, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: 'power3.out' });
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
+      const release = lockBodyScroll();
+      return release;
     }
     const tl = gsap.timeline({ onComplete: () => setRender(false) });
     tl.to(figureRef.current, { scale: 0.97, opacity: 0, duration: 0.2 }, 0);

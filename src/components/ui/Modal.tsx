@@ -47,13 +47,18 @@ export default function Modal({ open, onClose, children, size = 'md', ariaLabel 
         { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: 'power3.out' }
       );
       ScrollTrigger.refresh();
-      const release = lockBodyScroll();
-      return release;
+      return;
     }
     const tl = gsap.timeline({ onComplete: () => setRender(false) });
     tl.to(panelRef.current, { y: 12, scale: 0.97, opacity: 0, duration: 0.22, ease: 'power2.in' }, 0);
     tl.to(backdropRef.current, { opacity: 0, duration: 0.22, ease: 'power2.in' }, 0);
   }, [open, render]);
+
+  useEffect(() => {
+    if (!open) return;
+    const release = lockBodyScroll();
+    return release;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

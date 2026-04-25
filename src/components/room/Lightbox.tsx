@@ -34,13 +34,18 @@ export default function Lightbox({ open, onClose, images, index = 0, alt = 'Phot
     if (open) {
       gsap.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.25 });
       gsap.fromTo(figureRef.current, { scale: 0.94, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: 'power3.out' });
-      const release = lockBodyScroll();
-      return release;
+      return;
     }
     const tl = gsap.timeline({ onComplete: () => setRender(false) });
     tl.to(figureRef.current, { scale: 0.97, opacity: 0, duration: 0.2 }, 0);
     tl.to(overlayRef.current, { opacity: 0, duration: 0.2 }, 0);
   }, [open, render]);
+
+  useEffect(() => {
+    if (!open) return;
+    const release = lockBodyScroll();
+    return release;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
